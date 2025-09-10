@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:learn_local_storage/custom_text_field.dart';
-import 'package:learn_local_storage/task_item.dart';
-import 'package:learn_local_storage/task_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:learn_local_storage/presentation/cubit/todo_cubit.dart';
+import 'package:learn_local_storage/presentation/widget/custom_text_field.dart';
+import 'package:learn_local_storage/presentation/widget/task_item.dart';
+import 'package:learn_local_storage/data/task_model.dart';
 
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
@@ -12,21 +14,43 @@ class TodoPage extends StatefulWidget {
 
 class _TodoPageState extends State<TodoPage> {
   TextEditingController title = TextEditingController();
-
   TextEditingController subTitle = TextEditingController();
-
   TextEditingController date = TextEditingController();
-
-  List<TaskModel> tasks = [];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Tasks')),
-      body: ListView.builder(
-        itemCount: tasks.length,
-        itemBuilder: (context, index) {
-          return TaskItem(task: tasks[index]);
+      body: BlocBuilder<TodoCubit, TodoState>(
+        builder: (context, state) {
+          if (state is TodoLoaded) {
+            if (state.tasks.isEmpty) {
+              return Center(child: Text('Empty Todo !'));
+            }
+            return ListView.builder(
+              itemCount: state.tasks.length,
+              itemBuilder: (context, index) {
+                return TaskItem(
+                  task: state.tasks[index],
+                  onChanged: (newValue) {
+                    context.read<TodoCubit>().updateTask(
+                      TaskModel(
+                        id: state.tasks[index].id,
+                        title: state.tasks[index].title,
+                        subTitle: state.tasks[index].subTitle,
+                        date: state.tasks[index].date,
+                        isChecked: newValue ?? false,
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          }
+          if (state is TodoLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+          return Center(child: Text('Error !!'));
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -34,7 +58,7 @@ class _TodoPageState extends State<TodoPage> {
         onPressed: () {
           showModalBottomSheet(
             context: context,
-            builder: (context) {
+            builder: (bcontext) {
               return Container(
                 width: double.infinity,
                 color: Colors.blue[200],
@@ -47,7 +71,7 @@ class _TodoPageState extends State<TodoPage> {
                       controller: date,
                       onClick: () {
                         showDatePicker(
-                          context: context,
+                          context: bcontext,
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(Duration(days: 365)),
                         ).then((selctedDate) {
@@ -57,19 +81,17 @@ class _TodoPageState extends State<TodoPage> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        var model = TaskModel(
+                        var task = TaskModel(
                           title: title.text,
                           subTitle: subTitle.text,
                           date: DateTime.parse(date.text),
                           isChecked: false,
                         );
-                        setState(() {
-                          tasks.add(model);
-                        });
+                        context.read<TodoCubit>().addTask(task);
                         title.clear();
                         subTitle.clear();
                         date.clear();
-                        Navigator.pop(context);
+                        Navigator.pop(bcontext);
                       },
                       child: const Text('Create Task'),
                     ),

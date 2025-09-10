@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:learn_local_storage/todo_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:learn_local_storage/presentation/cubit/todo_cubit.dart';
+import 'package:learn_local_storage/presentation/pages/todo_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,8 +17,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: TodoPage(),
+      home: BlocProvider(
+        create: (context) => TodoCubit()..init(),
+        child: TodoPage(),
+      ),
     );
   }
 }
-
